@@ -90,11 +90,6 @@ void *pollForData()
           sentEvent = 1;
           FREDispatchStatusEventAsync(dllContext, (uint8_t*) "bufferHasData", (const uint8_t*) "INFO");
         }
-		else if (sentEvent == 1)
-		{
-			  multiplatformSleep(100);
-			  sentEvent = 0;
-		}
     }
     return NULL;
 }
