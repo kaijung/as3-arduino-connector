@@ -90,11 +90,6 @@ void *pollForData()
           sentEvent = 1;
           FREDispatchStatusEventAsync(dllContext, (uint8_t*) "bufferHasData", (const uint8_t*) "INFO");
         }
-		else if (sentEvent == 1)
-		{
-			  multiplatformSleep(100);
-			  sentEvent = 0;
-		}
     }
     return NULL;
 }
@@ -167,16 +162,18 @@ FREObject getBytesAsByteArray(FREContext ctx, void* funcData, uint32_t argc, FRE
 FREObject getByte(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
 {
   FREObject result;
+  if (bufferSize <= 0)
+	  return result;
 
-  pthread_mutex_lock( &safety);
+  //pthread_mutex_lock( &safety);
     FRENewObjectFromUint32(buffer[0], &result);
     memcpy(buffer,buffer+1,bufferSize-1);
-    bufferSize--;
-    if (bufferSize == 0)
-      {
-        sentEvent = 0;
-      }
-  pthread_mutex_unlock( &safety);
+	bufferSize--;
+   // if (bufferSize == 0)
+      //{
+     //   sentEvent = 0;
+      //}
+  //pthread_mutex_unlock( &safety);
 
   return result;
 }
@@ -184,9 +181,16 @@ FREObject getByte(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[
 FREObject getAvailableBytes(FREContext ctx, void* funcData, uint32_t argc, FREObject argv[])
 {
   FREObject result;
-  pthread_mutex_lock( &safety);
-    FRENewObjectFromInt32(bufferSize, &result);
-  pthread_mutex_unlock( &safety);
+  //pthread_mutex_lock( &safety);
+  unsigned char incomingBuffer[4096];
+  
+  int incomingBufferSize = PollComport(comPort, incomingBuffer, 4095);
+  
+  memcpy(buffer, incomingBuffer, incomingBufferSize);
+  buffer[incomingBufferSize] = 0;
+  bufferSize = incomingBufferSize;
+  FRENewObjectFromInt32(incomingBufferSize, &result);
+  //pthread_mutex_unlock( &safety);
   return result;
 }
 
@@ -274,7 +278,7 @@ FREObject setupPort(FREContext ctx, void* funcData, uint32_t argc, FREObject arg
   if (comPortError == 0)
     {
       multiplatformSleep(100);
-      pthread_create(&ptrToThread, NULL, pollForData, NULL);
+      //pthread_create(&ptrToThread, NULL, pollForData, NULL);
       FRENewObjectFromBool(1, &result);
     }
   else
@@ -352,7 +356,7 @@ void contextInitializer(void* extData, const uint8_t* ctxType, FREContext ctx, u
 
 void contextFinalizer(FREContext ctx)
 {
-  pthread_cancel(ptrToThread);
+  //pthread_cancel(ptrToThread);
   CloseComport(comPort);
   return;
 }
